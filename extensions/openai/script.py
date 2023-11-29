@@ -66,7 +66,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def send_sse(self, chunk: dict):
-        response = 'data: ' + json.dumps(chunk) + '\r\n\r\n'
+        response = f'data: {json.dumps(chunk)}' + '\r\n\r\n'
         debug_msg(response[:-4])
         self.wfile.write(response.encode('utf-8'))
 
@@ -158,20 +158,20 @@ class Handler(BaseHTTPRequestHandler):
                 headers=self.headers,
                 environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': self.headers['Content-Type']}
             )
-            
+
             audio_file = form['file'].file
             audio_data = AudioSegment.from_file(audio_file)
-            
+
             # Convert AudioSegment to raw data
             raw_data = audio_data.raw_data
-            
+
             # Create AudioData object
             audio_data = sr.AudioData(raw_data, audio_data.frame_rate, audio_data.sample_width)
             whipser_language = form.getvalue('language', None)
             whipser_model = form.getvalue('model', 'tiny')  # Use the model from the form data if it exists, otherwise default to tiny
 
             transcription = {"text": ""}
-            
+
             try:
                 transcription["text"] = r.recognize_whisper(audio_data, language=whipser_language, model=whipser_model)
             except sr.UnknownValueError:
@@ -180,10 +180,10 @@ class Handler(BaseHTTPRequestHandler):
             except sr.RequestError as e:
                 print("Could not request results from Whisper", e)
                 transcription["text"] = "Whisper could not understand audio RequestError"
-            
+
             self.return_json(transcription, no_debug=True)
             return   
-            
+
         debug_msg(self.requestline)
         debug_msg(self.headers)
 
@@ -214,9 +214,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ServiceUnavailableError("No model loaded.")
 
             is_legacy = '/generate' in self.path
-            is_streaming = body.get('stream', False)
-
-            if is_streaming:
+            if is_streaming := body.get('stream', False):
                 self.start_sse()
 
                 response = []

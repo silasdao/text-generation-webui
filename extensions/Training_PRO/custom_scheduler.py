@@ -15,7 +15,7 @@ def _get_fp_half_schedule_with_warmup_lr_lambda(current_step: int, *, num_warmup
     print_label = ''
 
     half_steps = num_training_steps//2
-    
+
     num_warmup_steps = min(num_warmup_steps,half_steps)
 
     if current_step < num_warmup_steps:
@@ -24,28 +24,28 @@ def _get_fp_half_schedule_with_warmup_lr_lambda(current_step: int, *, num_warmup
         print_label = 'Scheduler: Hold'
     else:
         print_label = 'Scheduler: Annealing'
-    
+
     if print_label != last_print_label:
         print(print_label)
-    
+
     last_print_label = print_label
 
     if current_step < num_warmup_steps:
         return float(current_step) / float(max(1, num_warmup_steps))
-    
+
     if current_step < half_steps:
         return 1.0 
-    
+
     progress = float(current_step - half_steps) / float(max(1, num_training_steps - half_steps))
     num_cycles = 0.5
-    return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))    
+    return max(0.0, 0.5 * (1.0 + math.cos(math.pi * num_cycles * 2.0 * progress)))    
  
 # constant to the first epochs then cosine down to 0 over the rest epochs
 def _get_fp_cosine_schedule_with_warmup_lr_lambda(current_step: int, *, num_warmup_steps: int, num_training_steps: int, num_firstepoch_steps: int):
     
     global last_print_label
     print_label = ''
-    
+
     num_warmup_steps = min(num_warmup_steps,num_firstepoch_steps)
 
     if current_step < num_warmup_steps:
@@ -54,21 +54,21 @@ def _get_fp_cosine_schedule_with_warmup_lr_lambda(current_step: int, *, num_warm
         print_label = 'Scheduler: Hold'
     else:
         print_label = 'Scheduler: Annealing'
-    
+
     if print_label != last_print_label:
         print(print_label)
-    
+
     last_print_label = print_label
 
     if current_step < num_warmup_steps:
         return float(current_step) / float(max(1, num_warmup_steps))
-    
+
     if current_step < num_firstepoch_steps:
         return 1.0 
-    
+
     progress = float(current_step - num_firstepoch_steps) / float(max(1, num_training_steps - num_firstepoch_steps))
     num_cycles = 0.5
-    return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))    
+    return max(0.0, 0.5 * (1.0 + math.cos(math.pi * num_cycles * 2.0 * progress)))    
     
 
 def custom_cosine_scheduler_with_warmup(optimizer, num_warmup_steps, num_training_steps, num_firstepoch_steps, last_epoch=-1):

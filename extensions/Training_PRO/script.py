@@ -93,7 +93,7 @@ def ui():
                 with gr.Row():
                     with gr.Column(scale=5):
                         lora_name = gr.Textbox(label='Name', info='The name of your new LoRA file')
-    
+
                     with gr.Column():
                         always_override = gr.Checkbox(label='Override Existing Files', value=False, info='If the name is the same, checking will replace the existing file, and unchecking will load and continue from it (the rank must be the same).', elem_classes=['no-background'])
 
@@ -112,7 +112,7 @@ def ui():
                         epochs = gr.Number(label='Epochs', value=3, info='Number of times every entry in the dataset should be fed into training. So 1 means feed each item in once, 5 means feed it in five times, etc.')
                         learning_rate = gr.Textbox(label='Learning Rate', value='3e-4', info='In scientific notation. 3e-4 is a good starting base point. 1e-2 is extremely high, 1e-6 is extremely low.')
                         lr_scheduler_type = gr.Dropdown(label='LR Scheduler', value='linear', choices=['linear', 'constant', 'constant_with_warmup', 'cosine', 'cosine_with_restarts', 'polynomial', 'inverse_sqrt', 'FP_low_epoch_annealing', 'FP_half_time_annealing'], info='Learning rate scheduler - defines how the learning rate changes over time. Custom schedulers: `FP_low_epoch_annealing` constant for 1 epoch then cosine anneal. `FP_half_time_annealing` constant for half time then cosine anneal', elem_classes=['slim-dropdown'])
-                        
+
                 with gr.Accordion(label='Checkpoints', open=True):
                     with gr.Row():
                         with gr.Column():
@@ -127,7 +127,7 @@ def ui():
                         with gr.Column():
                             warmup_steps = gr.Number(label='Warmup Steps', value=100, info='Number of max steps used for a linear warmup. Value different than 0 has precedent over Warmup Ratio. The actual number of steps will be the closest multiple of graddient accumulation')
                             warmup_ratio = gr.Slider(label='Warmup Ratio', minimum=0.0, maximum=0.2, step=0.025, value=0.0, info='Ratio of total training steps that will be used for a linear warmup. It applies only if Warmup Step is 0.')
-                            
+
                             training_projection = gr.Radio(value = train_choices[4], label='LLaMA Target Projections', info='Change the targets (LORA is typically q-v)', choices=train_choices)    
                             lora_dropout = gr.Slider(label='LoRA Dropout', minimum=0.0, maximum=1.0, step=0.025, value=0.05, info='Percentage probability for dropout of LoRA layers. This can help reduce overfitting. Most users should leave at default.')
                             optimizer = gr.Dropdown(label='Optimizer', value='adamw_torch', choices=['adamw_hf', 'adamw_torch', 'adamw_torch_fused', 'adamw_torch_xla', 'adamw_apex_fused', 'adafactor', 'adamw_bnb_8bit', 'adamw_anyprecision', 'sgd', 'adagrad'], info='Different optimizer implementation options, for advanced users. Effects of different options are not well documented yet.', elem_classes=['slim-dropdown'])
@@ -137,7 +137,7 @@ def ui():
                             add_bos_token = gr.Checkbox(label='Add BOS token', value=True, info="Adds BOS token for each dataset item")
                             add_eos_token = gr.Checkbox(label='Add EOS token', value=False, info="Adds EOS token for each dataset item")
                             add_eos_token_type = gr.Dropdown(label='EOS placement (raw text)', choices=['Every Block', 'Hard Cut Blocks Only'], value='Every Block', info='', allow_custom_value = False)
-                            
+
                             higher_rank_limit = gr.Checkbox(label='Enable higher ranks', value=False, info='If checked, changes Rank/Alpha slider above to go much higher. This will not work without a datacenter-class GPU.')
                             report_to = gr.Radio(label="Save detailed logs with", value="None", choices=["None", "wandb", "tensorboard"], interactive=True)
 
@@ -252,7 +252,7 @@ def ui():
         if shared.tokenizer is None:
             yield "Tokenizer is not available. Please Load some Model first."
             return
-        
+
         if raw_text_file not in ['None', '']:
             logger.info("Loading raw text file dataset...")
             fullpath = clean_path('training/datasets', f'{raw_text_file}')
@@ -270,8 +270,8 @@ def ui():
             else:
                 with open(clean_path('training/datasets', f'{raw_text_file}.txt'), 'r', encoding='utf-8') as file:
                     raw_text = file.read().replace('\r', '')
-        
- 
+
+
             if min_chars<0:
                 min_chars = 0
 
@@ -284,13 +284,13 @@ def ui():
             total_blocks = len(text_chunks)
             result = f"Raw Text: ({raw_text_file}.txt) has {total_blocks} blocks (with cutoff length = {cutoff_len})"
             del text_chunks
-       
+
         else:
-            if dataset in ['None', '']:
+            if dataset in {'None', ''}:
                 yield "Select dataset or Raw text."
                 return 
 
-            if format in ['None', '']:
+            if format in {'None', ''}:
                 yield "Select format choice for dataset."
                 return
 
@@ -299,7 +299,11 @@ def ui():
 
             def generate_prompt(data_point: dict[str, str]):
                 for options, data in format_data.items():
-                    if set(options.split(',')) == set(x[0] for x in data_point.items() if (type(x[1]) is str and len(x[1].strip()) > 0)):
+                    if set(options.split(',')) == {
+                        x[0]
+                        for x in data_point.items()
+                        if (type(x[1]) is str and len(x[1].strip()) > 0)
+                    }:
                         for key, val in data_point.items():
                             if type(val) is str:
                                 data = data.replace(f'%{key}%', val)
@@ -329,7 +333,7 @@ def ui():
             result = f"Dataset: ({dataset}.json) has {total_blocks} blocks (with cutoff length = {cutoff_len})"
 
         if total_blocks>0:
-            number_ofSteps = int(math.ceil(total_blocks / micro_batch_size) * epochs) 
+            number_ofSteps = int(math.ceil(total_blocks / micro_batch_size) * epochs)
             num_stepsPer_epoch = int(math.ceil(number_ofSteps/epochs))
             min_warm = math.ceil(100 / grad_accumulation)
 
@@ -339,19 +343,19 @@ def ui():
             save_each_n_min = int(math.ceil(number_ofSteps/10))
             save_each_n_max = int(math.ceil(number_ofSteps/5))
             gradient_accumulation_max = int(total_blocks)//micro_batch_size
-    
+
             result += f"\n[Batch Size: {micro_batch_size}, Epochs: {epochs}, Gradient Accumulation: {grad_accumulation}]\n"
             result += f"Total number of steps: {number_ofSteps}\n"
             result += f"Steps per each Epoch: {num_stepsPer_epoch}\n"
-            result += f"Warmup steps suggestion: {warmup_steps_suggest} (Current: {int(warmup_steps)})\n"
-            result += f"Checkpoint suggestion: Save every {save_each_n_min} - {save_each_n_max} steps (Current: {int(save_steps)})"
+            result += f"Warmup steps suggestion: {warmup_steps_suggest} (Current: {warmup_steps})\n"
+            result += f"Checkpoint suggestion: Save every {save_each_n_min} - {save_each_n_max} steps (Current: {save_steps})"
             if gradient_accumulation_max < grad_accumulation: 
                 result += f"\n\nWARNING: Gradient Accumulation {grad_accumulation} is too high: It should be below {gradient_accumulation_max}"
 
 
         yield result
         return
-    
+
     check_dataset_btn.click(check_dataset, dataset_calc_params ,check_dataset_txt)
 
     # Evaluation events. For some reason, the interrupt event
@@ -372,7 +376,7 @@ def ui():
 
     def reload_lora():
         return gr.Dropdown.update(choices=get_available_loras_local(non_serialized_params['Lora_sortedByTime']))
- 
+
     # nonserialized items
 
     sort_byTime.change(lambda x: non_serialized_params.update({"Lora_sortedByTime": x}), sort_byTime, None).then(reload_lora,None,copy_from) 
@@ -392,7 +396,7 @@ def do_copy_params(lora_name: str, *args):
     else:
         params = {}
 
-    result = list()
+    result = []
     for i in range(0, len(PARAMETERS)):
         key = PARAMETERS[i]
         if key in params:
@@ -411,10 +415,7 @@ def change_rank_limit(use_higher_ranks: bool):
 def clean_path(base_path: str, path: str):
     """Strips unusual symbols and forcibly builds a path as relative to the intended directory."""
     path = path.replace('\\', '/').replace('..', '_')
-    if base_path is None:
-        return path
-
-    return f'{Path(base_path).absolute()}/{path}'
+    return path if base_path is None else f'{Path(base_path).absolute()}/{path}'
 
 
 def backup_adapter(input_folder):
@@ -443,7 +444,7 @@ def backup_adapter(input_folder):
                 if file.is_file():
                     shutil.copy2(file, subfolder_path)
     except Exception as e:
-        print("An error occurred in backup_adapter:", str(e))
+        print("An error occurred in backup_adapter:", e)
 
 
 def calc_trainable_parameters(model):
